@@ -1,0 +1,6 @@
+services:
+  web:
+    build: .
+    container_name: week5-ci-cd-app
+    ports:
+      - "5001:5001"
