@@ -2,3 +2,9 @@ venv/
 __pycache__/
 .pytest_cache/
 *.pyc
+frontend/node_modules/
+frontend/.next/
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars

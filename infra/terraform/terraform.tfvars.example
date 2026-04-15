@@ -1,0 +1,8 @@
+aws_region     = "us-east-1"
+project_name   = "week5-ci-cd"
+environment    = "prod"
+backend_image  = "111111111111.dkr.ecr.us-east-1.amazonaws.com/week5-backend:latest"
+frontend_image = "111111111111.dkr.ecr.us-east-1.amazonaws.com/week5-frontend:latest"
+desired_nodes  = 2
+min_nodes      = 2
+max_nodes      = 4

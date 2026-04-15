@@ -1,6 +1,11 @@
 services:
-  web:
-    build: .
-    container_name: week5-ci-cd-app
+  backend:
+    build: ./backend
+    container_name: week5-ci-cd-backend
     ports:
       - "5001:5001"
+  frontend:
+    build: ./frontend
+    container_name: week5-ci-cd-frontend
+    ports:
+      - "3000:3000"
