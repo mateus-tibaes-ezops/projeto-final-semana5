@@ -47,6 +47,8 @@ module "eks" {
   cluster_version = "1.30"
 
   cluster_endpoint_public_access = true
+  create_kms_key                 = false
+  cluster_encryption_config      = {}
 
   enable_irsa = true
 
