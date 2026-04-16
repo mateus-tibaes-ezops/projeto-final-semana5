@@ -8,3 +8,5 @@ frontend/.next/
 *.tfstate
 *.tfstate.*
 terraform.tfvars
+backend.log
+backend.pid

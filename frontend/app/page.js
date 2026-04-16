@@ -13,7 +13,7 @@ export default function Home() {
   }, []);
 
   async function fetchItems() {
-    const response = await fetch("/api/items");
+    const response = await fetch("http://localhost:5001/api/items");
     if (response.ok) {
       setItems(await response.json());
     }
@@ -23,7 +23,7 @@ export default function Home() {
     event.preventDefault();
     const payload = { name, description };
 
-    const response = await fetch(editingId ? `/api/items/${editingId}` : "/api/items", {
+    const response = await fetch(editingId ? `http://localhost:5001/api/items/${editingId}` : "http://localhost:5001/api/items", {
       method: editingId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -44,7 +44,7 @@ export default function Home() {
   }
 
   async function deleteItem(id) {
-    const response = await fetch(`/api/items/${id}`, { method: "DELETE" });
+    const response = await fetch(`http://localhost:5001/api/items/${id}`, { method: "DELETE" });
     if (response.ok) {
       await fetchItems();
     }
@@ -53,7 +53,7 @@ export default function Home() {
   return (
     <main style={{ fontFamily: "sans-serif", padding: "2rem" }}>
       <h1>Aplicação Week5 CI/CD</h1>
-      <p>CRUD simples conectado ao backend via /api/items.</p>
+      <p>CRUD simples conectado ao backend via http://localhost:5001/api/items.</p>
 
       <form onSubmit={saveItem} style={{ marginBottom: "1rem" }}>
         <div style={{ marginBottom: "0.5rem" }}>
