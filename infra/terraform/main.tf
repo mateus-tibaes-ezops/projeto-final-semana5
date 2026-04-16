@@ -27,12 +27,12 @@ module "vpc" {
   single_nat_gateway = false
 
   public_subnet_tags = {
-    "kubernetes.io/role/elb" = "1"
+    "kubernetes.io/role/elb"                  = "1"
     "kubernetes.io/cluster/${local.name}-eks" = "shared"
   }
 
   private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = "1"
+    "kubernetes.io/role/internal-elb"         = "1"
     "kubernetes.io/cluster/${local.name}-eks" = "shared"
   }
 
@@ -53,9 +53,9 @@ module "eks" {
   enable_irsa = true
 
   cluster_addons = {
-    coredns = {}
+    coredns    = {}
     kube-proxy = {}
-    vpc-cni = {}
+    vpc-cni    = {}
   }
 
   subnet_ids = module.vpc.private_subnets

@@ -185,9 +185,10 @@ resource "kubernetes_ingress_v1" "apps" {
     name      = "apps-ingress"
     namespace = kubernetes_namespace.apps.metadata[0].name
     annotations = {
-      "kubernetes.io/ingress.class" = "alb"
-      "alb.ingress.kubernetes.io/scheme" = "internet-facing"
+      "kubernetes.io/ingress.class"           = "alb"
+      "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
       "alb.ingress.kubernetes.io/target-type" = "ip"
+      "alb.ingress.kubernetes.io/tags"        = "Project=${var.project_name},Environment=${var.environment},ManagedBy=terraform"
     }
   }
 
@@ -195,6 +196,8 @@ resource "kubernetes_ingress_v1" "apps" {
     ingress_class_name = "alb"
 
     rule {
+      host = var.route53_subdomain
+
       http {
         path {
           path      = "/api"

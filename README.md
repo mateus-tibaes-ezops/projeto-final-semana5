@@ -61,7 +61,8 @@ cp terraform.tfvars.example terraform.tfvars
 ```
 
 3. Ajuste as imagens de `backend_image` e `frontend_image`.
-4. Execute:
+4. Informe `route53_zone_name` e `route53_subdomain` para criar o registro DNS do subdomínio.
+5. Execute:
 
 ```bash
 terraform init

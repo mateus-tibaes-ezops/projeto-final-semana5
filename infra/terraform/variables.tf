@@ -49,3 +49,13 @@ variable "max_nodes" {
   type        = number
   default     = 4
 }
+
+variable "route53_zone_name" {
+  description = "Nome da zona Route53 existente para criar o registro do subdomínio"
+  type        = string
+}
+
+variable "route53_subdomain" {
+  description = "Subdomínio completo que será apontado para o ALB, por exemplo app.example.com"
+  type        = string
+}
