@@ -56,6 +56,6 @@ variable "route53_zone_name" {
 }
 
 variable "route53_subdomain" {
-  description = "Subdomínio completo que será apontado para o ALB, por exemplo app.example.com"
+  description = "Subdomínio ou domínio raiz completo que será apontado para o ALB, por exemplo app.example.com ou example.com"
   type        = string
 }

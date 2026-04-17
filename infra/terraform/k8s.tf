@@ -185,10 +185,13 @@ resource "kubernetes_ingress_v1" "apps" {
     name      = "apps-ingress"
     namespace = kubernetes_namespace.apps.metadata[0].name
     annotations = {
-      "kubernetes.io/ingress.class"           = "alb"
-      "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
-      "alb.ingress.kubernetes.io/target-type" = "ip"
-      "alb.ingress.kubernetes.io/tags"        = "Project=${var.project_name},Environment=${var.environment},ManagedBy=terraform"
+      "kubernetes.io/ingress.class"                    = "alb"
+      "alb.ingress.kubernetes.io/scheme"               = "internet-facing"
+      "alb.ingress.kubernetes.io/target-type"          = "ip"
+      "alb.ingress.kubernetes.io/tags"                 = "Project=${var.project_name},Environment=${var.environment},ManagedBy=terraform"
+      "alb.ingress.kubernetes.io/certificate-arn"      = aws_acm_certificate.ezopscloud.arn
+      "alb.ingress.kubernetes.io/listen-ports"         = "[{\"HTTP\": 80}, {\"HTTPS\": 443}]"
+      "alb.ingress.kubernetes.io/ssl-redirect"         = "443"
     }
   }
 
@@ -230,5 +233,8 @@ resource "kubernetes_ingress_v1" "apps" {
     }
   }
 
-  depends_on = [helm_release.aws_load_balancer_controller]
+  depends_on = [
+    helm_release.aws_load_balancer_controller,
+    aws_acm_certificate_validation.ezopscloud
+  ]
 }
