@@ -10,7 +10,8 @@ Projeto em monorepo com:
 
 - VPC em multiplas AZs
 - EKS com node group gerenciado e escalavel
-- Deployments de frontend e backend com `replicas = 2`
+- Deployment de frontend com `replicas = 2`
+- Deployment de backend com `replicas = 1` enquanto os dados estiverem apenas em memoria
 - Services internos e Ingress externo para roteamento
 - CD da aplicacao via Terraform (sem deploy por GitHub Actions)
 
@@ -75,3 +76,4 @@ terraform apply
 - O AWS Load Balancer Controller ja e instalado pelo Terraform com IRSA via Helm.
 - O Ingress usa `ingress_class_name = "alb"` e depende da instalacao do controller.
 - O `terraform plan` no CI usa imagens de exemplo apenas para validar o fluxo.
+- Como a API atual guarda os itens em memoria, o backend deve ficar com uma replica unica no Kubernetes. Para escalar o backend sem quebrar `add/edit/delete`, sera necessario usar armazenamento compartilhado, como um banco de dados.

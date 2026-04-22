@@ -14,7 +14,9 @@ resource "kubernetes_deployment" "backend" {
   }
 
   spec {
-    replicas = 2
+    # This API stores data in process memory, so multiple replicas would
+    # produce inconsistent CRUD results behind the Service/Ingress.
+    replicas = 1
 
     selector {
       match_labels = {
