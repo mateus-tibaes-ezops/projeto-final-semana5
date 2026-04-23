@@ -23,7 +23,10 @@ def test_health():
 def test_crud_item_lifecycle():
     client = app_module.app.test_client()
 
-    response = client.post("/api/items", json={"name": "Teste", "description": "Descrição"})
+    response = client.post(
+        "/api/items",
+        json={"name": "Teste", "description": "Descrição"},
+    )
     assert response.status_code == 201
     assert response.json["id"] == 1
     assert response.json["name"] == "Teste"
