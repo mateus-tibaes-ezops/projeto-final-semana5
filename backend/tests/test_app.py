@@ -1,9 +1,10 @@
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
-import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-import app as app_module
+APP_PATH = Path(__file__).resolve().parents[1] / "app.py"
+SPEC = spec_from_file_location("app_module", APP_PATH)
+app_module = module_from_spec(SPEC)
+SPEC.loader.exec_module(app_module)
 
 
 def setup_function():
