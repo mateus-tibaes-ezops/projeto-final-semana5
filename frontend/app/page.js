@@ -90,9 +90,9 @@ export default function Home() {
 
   return (
     <main style={{ fontFamily: "sans-serif", padding: "2rem", maxWidth: "900px", margin: "0 auto" }}>
-      <h1 style={{ marginBottom: "0.5rem" }}>CRUD do Ezopscloud</h1>
+      <h1 style={{ marginBottom: "0.5rem" }}>CRUD do Ezopscloud - Deploy Atualizado</h1>
       <p style={{ marginBottom: "1.5rem" }}>
-        Ferramenta simples para adicionar, editar e apagar itens usando o backend Flask pelo mesmo domínio.
+        Ferramenta simples para adicionar, editar e apagar itens usando o backend Flask pelo mesmo dominio.
       </p>
 
       <section style={{ marginBottom: "2rem", padding: "1.5rem", border: "1px solid #ddd", borderRadius: "8px", background: "#fafafa" }}>
