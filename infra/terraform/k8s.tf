@@ -106,6 +106,15 @@ resource "kubernetes_deployment" "frontend" {
   spec {
     replicas = 2
 
+    strategy {
+      type = "RollingUpdate"
+
+      rolling_update {
+        max_surge       = "1"
+        max_unavailable = "0"
+      }
+    }
+
     selector {
       match_labels = {
         app = "frontend"

@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Week5 Frontend",
+  title: "Week5 Frontend - Deploy Atualizado",
   description: "Frontend Next.js para projeto CI/CD e EKS",
 };
 
