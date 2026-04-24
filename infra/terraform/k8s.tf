@@ -4,69 +4,126 @@ resource "kubernetes_namespace" "apps" {
   }
 }
 
+locals {
+  apps_namespace = kubernetes_namespace.apps.metadata[0].name
+
+  backend = {
+    name         = "backend"
+    service_name = "backend-service"
+    image        = var.backend_image
+    port         = 5001
+    replicas     = 1
+    resources = {
+      requests = {
+        cpu    = "100m"
+        memory = "128Mi"
+      }
+      limits = {
+        cpu    = "500m"
+        memory = "256Mi"
+      }
+    }
+    health_path = "/health"
+    liveness = {
+      initial_delay_seconds = 10
+      period_seconds        = 10
+    }
+    readiness = {
+      initial_delay_seconds = 5
+      period_seconds        = 5
+    }
+  }
+
+  frontend = {
+    name         = "frontend"
+    service_name = "frontend-service"
+    image        = var.frontend_image
+    port         = 3000
+    service_port = 80
+    replicas     = 2
+    resources = {
+      requests = {
+        cpu    = "200m"
+        memory = "256Mi"
+      }
+      limits = {
+        cpu    = "700m"
+        memory = "512Mi"
+      }
+    }
+    health_path = "/"
+    liveness = {
+      initial_delay_seconds = 15
+      period_seconds        = 10
+    }
+    readiness = {
+      initial_delay_seconds = 10
+      period_seconds        = 5
+    }
+    rolling_update = {
+      max_surge       = "1"
+      max_unavailable = "0"
+    }
+  }
+}
+
 resource "kubernetes_deployment" "backend" {
   metadata {
-    name      = "backend"
-    namespace = kubernetes_namespace.apps.metadata[0].name
+    name      = local.backend.name
+    namespace = local.apps_namespace
     labels = {
-      app = "backend"
+      app = local.backend.name
     }
   }
 
   spec {
     # This API stores data in process memory, so multiple replicas would
     # produce inconsistent CRUD results behind the Service/Ingress.
-    replicas = 1
+    replicas = local.backend.replicas
 
     selector {
       match_labels = {
-        app = "backend"
+        app = local.backend.name
       }
     }
 
     template {
       metadata {
         labels = {
-          app = "backend"
+          app = local.backend.name
         }
       }
 
       spec {
         container {
-          name  = "backend"
-          image = var.backend_image
+          name  = local.backend.name
+          image = local.backend.image
 
           port {
-            container_port = 5001
+            container_port = local.backend.port
           }
 
           resources {
-            requests = {
-              cpu    = "100m"
-              memory = "128Mi"
-            }
-            limits = {
-              cpu    = "500m"
-              memory = "256Mi"
-            }
+            requests = local.backend.resources.requests
+            limits   = local.backend.resources.limits
           }
 
           liveness_probe {
             http_get {
-              path = "/health"
-              port = 5001
+              path = local.backend.health_path
+              port = local.backend.port
             }
-            initial_delay_seconds = 10
-            period_seconds        = 10
+            initial_delay_seconds = local.backend.liveness.initial_delay_seconds
+            period_seconds        = local.backend.liveness.period_seconds
           }
 
           readiness_probe {
             http_get {
-              path = "/health"
-              port = 5001
+              path = local.backend.health_path
+              port = local.backend.port
             }
-            initial_delay_seconds = 5
-            period_seconds        = 5
+            initial_delay_seconds = local.backend.readiness.initial_delay_seconds
+            period_seconds        = local.backend.readiness.period_seconds
           }
         }
       }
@@ -76,18 +133,18 @@ resource "kubernetes_deployment" "backend" {
 
 resource "kubernetes_service" "backend" {
   metadata {
-    name      = "backend-service"
-    namespace = kubernetes_namespace.apps.metadata[0].name
+    name      = local.backend.service_name
+    namespace = local.apps_namespace
   }
 
   spec {
     selector = {
-      app = "backend"
+      app = local.backend.name
     }
 
     port {
-      port        = 5001
-      target_port = 5001
+      port        = local.backend.port
+      target_port = local.backend.port
     }
 
     type = "ClusterIP"
@@ -96,74 +153,68 @@ resource "kubernetes_service" "backend" {
 
 resource "kubernetes_deployment" "frontend" {
   metadata {
-    name      = "frontend"
-    namespace = kubernetes_namespace.apps.metadata[0].name
+    name      = local.frontend.name
+    namespace = local.apps_namespace
     labels = {
-      app = "frontend"
+      app = local.frontend.name
     }
   }
 
   spec {
-    replicas = 2
+    replicas = local.frontend.replicas
 
     strategy {
       type = "RollingUpdate"
 
       rolling_update {
-        max_surge       = "1"
-        max_unavailable = "0"
+        max_surge       = local.frontend.rolling_update.max_surge
+        max_unavailable = local.frontend.rolling_update.max_unavailable
       }
     }
 
     selector {
       match_labels = {
-        app = "frontend"
+        app = local.frontend.name
       }
     }
 
     template {
       metadata {
         labels = {
-          app = "frontend"
+          app = local.frontend.name
         }
       }
 
       spec {
         container {
-          name  = "frontend"
-          image = var.frontend_image
+          name  = local.frontend.name
+          image = local.frontend.image
 
           port {
-            container_port = 3000
+            container_port = local.frontend.port
           }
 
           resources {
-            requests = {
-              cpu    = "200m"
-              memory = "256Mi"
-            }
-            limits = {
-              cpu    = "700m"
-              memory = "512Mi"
-            }
+            requests = local.frontend.resources.requests
+            limits   = local.frontend.resources.limits
           }
 
           liveness_probe {
             http_get {
-              path = "/"
-              port = 3000
+              path = local.frontend.health_path
+              port = local.frontend.port
             }
-            initial_delay_seconds = 15
-            period_seconds        = 10
+            initial_delay_seconds = local.frontend.liveness.initial_delay_seconds
+            period_seconds        = local.frontend.liveness.period_seconds
           }
 
           readiness_probe {
             http_get {
-              path = "/"
-              port = 3000
+              path = local.frontend.health_path
+              port = local.frontend.port
             }
-            initial_delay_seconds = 10
-            period_seconds        = 5
+            initial_delay_seconds = local.frontend.readiness.initial_delay_seconds
+            period_seconds        = local.frontend.readiness.period_seconds
           }
         }
       }
@@ -173,18 +224,18 @@ resource "kubernetes_deployment" "frontend" {
 
 resource "kubernetes_service" "frontend" {
   metadata {
-    name      = "frontend-service"
-    namespace = kubernetes_namespace.apps.metadata[0].name
+    name      = local.frontend.service_name
+    namespace = local.apps_namespace
   }
 
   spec {
     selector = {
-      app = "frontend"
+      app = local.frontend.name
     }
 
     port {
-      port        = 80
-      target_port = 3000
+      port        = local.frontend.service_port
+      target_port = local.frontend.port
     }
 
     type = "ClusterIP"
@@ -194,15 +245,15 @@ resource "kubernetes_service" "frontend" {
 resource "kubernetes_ingress_v1" "apps" {
   metadata {
     name      = "apps-ingress"
-    namespace = kubernetes_namespace.apps.metadata[0].name
+    namespace = local.apps_namespace
     annotations = {
-      "kubernetes.io/ingress.class"                    = "alb"
-      "alb.ingress.kubernetes.io/scheme"               = "internet-facing"
-      "alb.ingress.kubernetes.io/target-type"          = "ip"
-      "alb.ingress.kubernetes.io/tags"                 = "Project=${var.project_name},Environment=${var.environment},ManagedBy=terraform"
-      "alb.ingress.kubernetes.io/certificate-arn"      = aws_acm_certificate.ezopscloud.arn
-      "alb.ingress.kubernetes.io/listen-ports"         = "[{\"HTTP\": 80}, {\"HTTPS\": 443}]"
-      "alb.ingress.kubernetes.io/ssl-redirect"         = "443"
+      "kubernetes.io/ingress.class"               = "alb"
+      "alb.ingress.kubernetes.io/scheme"          = "internet-facing"
+      "alb.ingress.kubernetes.io/target-type"     = "ip"
+      "alb.ingress.kubernetes.io/tags"            = "Project=${var.project_name},Environment=${var.environment},ManagedBy=terraform"
+      "alb.ingress.kubernetes.io/certificate-arn" = aws_acm_certificate.ezopscloud.arn
+      "alb.ingress.kubernetes.io/listen-ports"    = "[{\"HTTP\": 80}, {\"HTTPS\": 443}]"
+      "alb.ingress.kubernetes.io/ssl-redirect"    = "443"
     }
   }
 
@@ -221,7 +272,7 @@ resource "kubernetes_ingress_v1" "apps" {
             service {
               name = kubernetes_service.backend.metadata[0].name
               port {
-                number = 5001
+                number = local.backend.port
               }
             }
           }
@@ -235,7 +286,7 @@ resource "kubernetes_ingress_v1" "apps" {
             service {
               name = kubernetes_service.frontend.metadata[0].name
               port {
-                number = 80
+                number = local.frontend.service_port
               }
             }
           }

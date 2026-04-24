@@ -8,8 +8,7 @@ SPEC.loader.exec_module(app_module)
 
 
 def setup_function():
-    app_module.items.clear()
-    app_module.next_id = 1
+    app_module.store.reset()
 
 
 def test_home():
@@ -24,6 +23,7 @@ def test_health():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json["status"] == "ok"
+    assert response.json["items_count"] == 0
 
 
 def test_crud_item_lifecycle():
@@ -51,3 +51,13 @@ def test_crud_item_lifecycle():
 
     response = client.get("/api/items/1")
     assert response.status_code == 404
+    assert response.json["message"] == "Item nao encontrado."
+
+
+def test_create_item_requires_name():
+    client = app_module.app.test_client()
+
+    response = client.post("/api/items", json={"name": "   "})
+
+    assert response.status_code == 400
+    assert response.json["message"] == "Campo 'name' obrigatorio."
