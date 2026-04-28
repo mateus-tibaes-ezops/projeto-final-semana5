@@ -191,6 +191,28 @@ data:
             annotations:
               summary: "Kubernetes API server 5xx errors"
               description: "The Kubernetes API server is returning more than 0.1 5xx responses per second for 10 minutes."
+
+          - alert: BackendDown
+            expr: absent_over_time(container_cpu_usage_seconds_total{namespace="apps", pod=~"backend-.*", container!="", container!="POD"}[2m])
+            for: 1m
+            labels:
+              severity: critical
+              namespace: apps
+              app: backend
+            annotations:
+              summary: "Backend application is down"
+              description: "No backend pod metrics have been received for more than 2 minutes."
+
+          - alert: FrontendDown
+            expr: absent_over_time(container_cpu_usage_seconds_total{namespace="apps", pod=~"frontend-.*", container!="", container!="POD"}[2m])
+            for: 1m
+            labels:
+              severity: critical
+              namespace: apps
+              app: frontend
+            annotations:
+              summary: "Frontend application is down"
+              description: "No frontend pod metrics have been received for more than 2 minutes."
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
