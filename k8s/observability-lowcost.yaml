@@ -385,7 +385,7 @@ spec:
             name: alertmanager-config
         - name: slack-webhook
           secret:
-            secretName: alertmanager-slack
+            secretName: alertmanager-company-slack
             items:
               - key: webhook-url
                 path: slack-webhook-url
