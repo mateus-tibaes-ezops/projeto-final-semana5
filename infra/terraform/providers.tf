@@ -21,12 +21,16 @@ provider "aws" {
   region = var.aws_region
 }
 
+locals {
+  cluster_name = "${var.project_name}-${var.environment}-eks"
+}
+
 data "aws_eks_cluster" "this" {
-  name = module.eks.cluster_name
+  name = local.cluster_name
 }
 
 data "aws_eks_cluster_auth" "this" {
-  name = module.eks.cluster_name
+  name = local.cluster_name
 }
 
 provider "kubernetes" {

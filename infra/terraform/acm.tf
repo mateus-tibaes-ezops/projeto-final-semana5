@@ -18,10 +18,10 @@ resource "aws_acm_certificate" "ezopscloud" {
 # Validate certificate with Route53 DNS
 resource "aws_route53_record" "cert_validation" {
   for_each = {
-    for dvo in aws_acm_certificate.ezopscloud.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
+    (var.route53_subdomain) = {
+      name   = one(aws_acm_certificate.ezopscloud.domain_validation_options).resource_record_name
+      record = one(aws_acm_certificate.ezopscloud.domain_validation_options).resource_record_value
+      type   = one(aws_acm_certificate.ezopscloud.domain_validation_options).resource_record_type
     }
   }
 
@@ -33,7 +33,7 @@ resource "aws_route53_record" "cert_validation" {
 }
 
 resource "aws_acm_certificate_validation" "ezopscloud" {
-  certificate_arn           = aws_acm_certificate.ezopscloud.arn
+  certificate_arn = aws_acm_certificate.ezopscloud.arn
   timeouts {
     create = "5m"
   }
