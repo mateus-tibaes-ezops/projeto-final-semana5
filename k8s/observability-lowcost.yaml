@@ -309,6 +309,9 @@ data:
     receivers:
       - name: slack-notifications
         slack_configs:
+          # The webhook stored in this Secret must be created in the company Slack workspace
+          # and installed for #treinamento-devops-pub. Slack may ignore channel overrides
+          # when the incoming webhook is bound to another destination.
           - api_url_file: /etc/alertmanager-secrets/slack-webhook-url
             channel: "#treinamento-devops-pub"
             send_resolved: true
