@@ -71,15 +71,6 @@ data:
         cluster: week5-ci-cd-prod-eks
         environment: prod
 
-    rule_files:
-      - /etc/prometheus/alert.rules.yml
-
-    alerting:
-      alertmanagers:
-        - static_configs:
-            - targets:
-                - alertmanager.observability.svc.cluster.local:9093
-
     scrape_configs:
       - job_name: prometheus
         static_configs:
@@ -152,67 +143,6 @@ data:
             target_label: namespace
           - source_labels: [__meta_kubernetes_pod_name]
             target_label: pod
-  alert.rules.yml: |
-    groups:
-      - name: lowcost-observability
-        rules:
-          - alert: PrometheusTargetDown
-            expr: up == 0
-            for: 5m
-            labels:
-              severity: warning
-            annotations:
-              summary: "Prometheus target down"
-              description: "Target {{ $labels.job }} / {{ $labels.instance }} has been down for more than 5 minutes."
-
-          - alert: PodHighCpuUsage
-            expr: sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{namespace=~"apps|observability"}[5m])) > 0.8
-            for: 10m
-            labels:
-              severity: warning
-            annotations:
-              summary: "High pod CPU usage"
-              description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is using more than 0.8 CPU cores for 10 minutes."
-
-          - alert: PodHighMemoryUsage
-            expr: sum by (namespace, pod) (container_memory_working_set_bytes{namespace=~"apps|observability"}) > 700 * 1024 * 1024
-            for: 10m
-            labels:
-              severity: warning
-            annotations:
-              summary: "High pod memory usage"
-              description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is using more than 700MiB of memory for 10 minutes."
-
-          - alert: ApiServerHighErrorRate
-            expr: sum(rate(apiserver_request_total{code=~"5.."}[5m])) > 0.1
-            for: 10m
-            labels:
-              severity: critical
-            annotations:
-              summary: "Kubernetes API server 5xx errors"
-              description: "The Kubernetes API server is returning more than 0.1 5xx responses per second for 10 minutes."
-
-          - alert: BackendDown
-            expr: absent_over_time(container_cpu_usage_seconds_total{namespace="apps", pod=~"backend-.*", container!="", container!="POD"}[2m])
-            for: 1m
-            labels:
-              severity: critical
-              namespace: apps
-              app: backend
-            annotations:
-              summary: "Backend application is down"
-              description: "No backend pod metrics have been received for more than 2 minutes."
-
-          - alert: FrontendDown
-            expr: absent_over_time(container_cpu_usage_seconds_total{namespace="apps", pod=~"frontend-.*", container!="", container!="POD"}[2m])
-            for: 1m
-            labels:
-              severity: critical
-              namespace: apps
-              app: frontend
-            annotations:
-              summary: "Frontend application is down"
-              description: "No frontend pod metrics have been received for more than 2 minutes."
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -311,126 +241,6 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: alertmanager-config
-  namespace: observability
-data:
-  alertmanager.yml: |
-    global:
-      resolve_timeout: 5m
-
-    route:
-      receiver: slack-notifications
-      group_by:
-        - alertname
-        - namespace
-        - pod
-      group_wait: 30s
-      group_interval: 5m
-      repeat_interval: 4h
-
-    receivers:
-      - name: slack-notifications
-        slack_configs:
-          # The webhook stored in this Secret must be created in the company Slack workspace
-          # and installed for #treinamento-devops-pub / C03QMEYS7DY. Slack may ignore channel overrides
-          # when the incoming webhook is bound to another destination.
-          - api_url_file: /etc/alertmanager-secrets/slack-webhook-url
-            channel: "C03QMEYS7DY"
-            send_resolved: true
-            title: "[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}"
-            text: >-
-              {{ range .Alerts -}}
-              *Severity:* {{ .Labels.severity }}
-              *Namespace:* {{ .Labels.namespace }}
-              *Pod:* {{ .Labels.pod }}
-              *Summary:* {{ .Annotations.summary }}
-              *Description:* {{ .Annotations.description }}
-              {{ end }}
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: alertmanager
-  namespace: observability
-  labels:
-    app.kubernetes.io/name: alertmanager
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: alertmanager
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: alertmanager
-    spec:
-      containers:
-        - name: alertmanager
-          image: prom/alertmanager:v0.29.0
-          args:
-            - --config.file=/etc/alertmanager/alertmanager.yml
-            - --storage.path=/alertmanager
-          ports:
-            - name: http
-              containerPort: 9093
-          resources:
-            requests:
-              cpu: 10m
-              memory: 32Mi
-            limits:
-              cpu: 100m
-              memory: 128Mi
-          readinessProbe:
-            httpGet:
-              path: /-/ready
-              port: http
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /-/healthy
-              port: http
-            initialDelaySeconds: 10
-            periodSeconds: 30
-          volumeMounts:
-            - name: config
-              mountPath: /etc/alertmanager
-              readOnly: true
-            - name: slack-webhook
-              mountPath: /etc/alertmanager-secrets
-              readOnly: true
-            - name: data
-              mountPath: /alertmanager
-      volumes:
-        - name: config
-          configMap:
-            name: alertmanager-config
-        - name: slack-webhook
-          secret:
-            secretName: alertmanager-company-slack
-            items:
-              - key: webhook-url
-                path: slack-webhook-url
-        - name: data
-          emptyDir: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: alertmanager
-  namespace: observability
-spec:
-  type: ClusterIP
-  selector:
-    app.kubernetes.io/name: alertmanager
-  ports:
-    - name: http
-      port: 9093
-      targetPort: http
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: grafana-provisioning
   namespace: observability
 data:
@@ -438,6 +248,7 @@ data:
     apiVersion: 1
     datasources:
       - name: Prometheus
+        uid: prometheus
         type: prometheus
         access: proxy
         url: http://prometheus.observability.svc.cluster.local:9090
@@ -454,6 +265,191 @@ data:
         editable: false
         options:
           path: /var/lib/grafana/dashboards
+  contactpoints.yml: |
+    apiVersion: 1
+    contactPoints:
+      - orgId: 1
+        name: Slack Empresa - treinamento-devops-pub
+        receivers:
+          - uid: slack_company_training
+            type: slack
+            disableResolveMessage: false
+            settings:
+              recipient: C03QMEYS7DY
+              url: $GRAFANA_SLACK_WEBHOOK_URL
+              title: |
+                [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}
+              text: |
+                {{ range .Alerts -}}
+                *Severity:* {{ .Labels.severity }}
+                *Namespace:* {{ .Labels.namespace }}
+                *App:* {{ .Labels.app }}
+                *Summary:* {{ .Annotations.summary }}
+                *Description:* {{ .Annotations.description }}
+                {{ end }}
+  policies.yml: |
+    apiVersion: 1
+    policies:
+      - orgId: 1
+        receiver: Slack Empresa - treinamento-devops-pub
+        group_by:
+          - grafana_folder
+          - alertname
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 4h
+  alert-rules.yml: |
+    apiVersion: 1
+    groups:
+      - orgId: 1
+        name: application-health
+        folder: Observability
+        interval: 60s
+        rules:
+          - uid: grafana_backend_down
+            title: BackendDown
+            condition: C
+            data:
+              - refId: A
+                datasourceUid: prometheus
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                model:
+                  datasource:
+                    type: prometheus
+                    uid: prometheus
+                  editorMode: code
+                  expr: absent_over_time(container_cpu_usage_seconds_total{namespace="apps", pod=~"backend-.*", container!="", container!="POD"}[2m])
+                  instant: true
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  range: false
+                  refId: A
+              - refId: B
+                datasourceUid: __expr__
+                relativeTimeRange:
+                  from: 0
+                  to: 0
+                model:
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: A
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  reducer: last
+                  refId: B
+                  type: reduce
+              - refId: C
+                datasourceUid: __expr__
+                relativeTimeRange:
+                  from: 0
+                  to: 0
+                model:
+                  conditions:
+                    - evaluator:
+                        params:
+                          - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                          - C
+                      reducer:
+                        type: last
+                      type: query
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: B
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  refId: C
+                  type: threshold
+            noDataState: OK
+            execErrState: Error
+            for: 1m
+            annotations:
+              summary: Backend application is down
+              description: No backend pod metrics have been received for more than 2 minutes.
+            labels:
+              severity: critical
+              namespace: apps
+              app: backend
+          - uid: grafana_frontend_down
+            title: FrontendDown
+            condition: C
+            data:
+              - refId: A
+                datasourceUid: prometheus
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                model:
+                  datasource:
+                    type: prometheus
+                    uid: prometheus
+                  editorMode: code
+                  expr: absent_over_time(container_cpu_usage_seconds_total{namespace="apps", pod=~"frontend-.*", container!="", container!="POD"}[2m])
+                  instant: true
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  range: false
+                  refId: A
+              - refId: B
+                datasourceUid: __expr__
+                relativeTimeRange:
+                  from: 0
+                  to: 0
+                model:
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: A
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  reducer: last
+                  refId: B
+                  type: reduce
+              - refId: C
+                datasourceUid: __expr__
+                relativeTimeRange:
+                  from: 0
+                  to: 0
+                model:
+                  conditions:
+                    - evaluator:
+                        params:
+                          - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                          - C
+                      reducer:
+                        type: last
+                      type: query
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: B
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  refId: C
+                  type: threshold
+            noDataState: OK
+            execErrState: Error
+            for: 1m
+            annotations:
+              summary: Frontend application is down
+              description: No frontend pod metrics have been received for more than 2 minutes.
+            labels:
+              severity: critical
+              namespace: apps
+              app: frontend
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -659,6 +655,11 @@ spec:
               value: "false"
             - name: GF_PLUGINS_PREINSTALL_DISABLED
               value: "true"
+            - name: GRAFANA_SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-slack-contact-point
+                  key: webhook-url
           resources:
             requests:
               cpu: 50m
@@ -686,6 +687,18 @@ spec:
             - name: provisioning
               mountPath: /etc/grafana/provisioning/dashboards/dashboards.yml
               subPath: dashboards.yml
+              readOnly: true
+            - name: provisioning
+              mountPath: /etc/grafana/provisioning/alerting/contactpoints.yml
+              subPath: contactpoints.yml
+              readOnly: true
+            - name: provisioning
+              mountPath: /etc/grafana/provisioning/alerting/policies.yml
+              subPath: policies.yml
+              readOnly: true
+            - name: provisioning
+              mountPath: /etc/grafana/provisioning/alerting/alert-rules.yml
+              subPath: alert-rules.yml
               readOnly: true
             - name: dashboard
               mountPath: /var/lib/grafana/dashboards
